@@ -13,8 +13,8 @@
 
 | 来源 | 用途 | 对本次评审的直接作用 |
 |---|---|---|
-| `D:/MyVault/10_Projects/WorkBuddy-Obsidian-Bridge/04-最佳实践.md` | 8 条避坑 + 四阶段排查法 + 证据强度表 | 直接给出本次要查的两类目标：**静默失败**（坑 2/4/8）与**产物断言**（§三 坑 8） |
-| `D:/MyVault/10_Projects/WorkBuddy-Obsidian-Bridge/01-开发复盘.md` | 8 个真实坑的根因链 | 坑 8 的「三层不可见」模型（日志无输出 / 计数恒 0 / 测试全绿）被用作本次的**检查清单** |
+| `D:/MyVault/10_Projects/<项目目录>/<最佳实践文档>.md` | 8 条避坑 + 四阶段排查法 + 证据强度表 | 直接给出本次要查的两类目标：**静默失败**（坑 2/4/8）与**产物断言**（§三 坑 8） |
+| `D:/MyVault/10_Projects/<项目目录>/<开发复盘文档>.md` | 8 个真实坑的根因链 | 坑 8 的「三层不可见」模型（日志无输出 / 计数恒 0 / 测试全绿）被用作本次的**检查清单** |
 | `obsidian-bridge/docs/BEST-PRACTICES.md`、`docs/TROUBLESHOOTING.md` | 仓库版最佳实践 | 与 KB 一致，未引入新约束 |
 | `obsidian-bridge/docs/CONFIG.md`、`docs/CHANGELOG.md` | 配置语义 | 用于判定 `hmacSecretEnv` / `governance.documented` 是否为死配置 |
 
@@ -36,7 +36,7 @@
 - `D:/MyVault/90_Agent/knowledge-organize-cursor.json`（7.4 KB，最后写入 20:29:47）→ **存在**，知识整理确实在跑
 - `D:/MyVault/90_Agent/bridge-diagnostics.jsonl`（24 KB，最后写入 21:01:44）→ `diagnose` 事件在持续写入
 
-> ⚠️ **口径提醒**（KB 已踩过的坑）：本次所有行数/时间均取自 `read` 工具与 `node` UTF-8 读取，**未使用 PowerShell 的 `Get-Content | Measure-Object`**（该组合在中文 UTF-8 文件上会误报，见 `01-开发复盘.md:59-70`）。
+> ⚠️ **口径提醒**（KB 已踩过的坑）：本次所有行数/时间均取自 `read` 工具与 `node` UTF-8 读取，**未使用 PowerShell 的 `Get-Content | Measure-Object`**（该组合在中文 UTF-8 文件上会误报，见 `<开发复盘文档>.md:59-70`）。
 
 ---
 
@@ -280,7 +280,7 @@
 - **中间环节**：`:352-354` 的注释声称「留痕、计数、注入三者必须一起受它控制」——**注入确实被挡住了**（`:355` 在 `return` 之前不追加消息），但 **`indexBuilt` 计数与 `ensureIndex` 的副作用没有被挡住**。
 - **根因**：注释承诺的「三件事一起受控」与实际代码的「两件事受控 + 一件副作用不受控」不符。
 - **反证**：把 `if (!cfg.enabled.prompt) return decision;` 提到 `if (cfg.inject.enabled)` **之前**，则 `indexBuilt` 不再增长；代价是 `prompt` 关闭时连索引都不构建（面板 `index.size` 变 0）。→ 这是产品语义选择，需决策。
-- **注**：KB 的 `04-最佳实践.md:225` 检查清单写着「`enabled.*` 的语义与文档一致（`enabled.prompt` 在 1.0.1 起同时控制注入）」——**只提到控制注入，没提到不控制 `indexBuilt`**。
+- **注**：KB 的 `<最佳实践文档>.md:225` 检查清单写着「`enabled.*` 的语义与文档一致（`enabled.prompt` 在 1.0.1 起同时控制注入）」——**只提到控制注入，没提到不控制 `indexBuilt`**。
 
 ### D6【P2｜已验证】空索引永不 fresh，导致重复全量扫描
 
@@ -708,7 +708,7 @@
 根因：**「开关的语义边界」在注释与代码之间不一致**。
       注释写的是「三件事」，代码做的是「两件事」。
   ↑
-上游 N 层：KB 检查清单（04-最佳实践.md:225）只列了「enabled.prompt 同时控制注入」，
+上游 N 层：KB 检查清单（<最佳实践文档>.md:225）只列了「enabled.prompt 同时控制注入」，
           没有要求它控制 indexBuilt —— 所以这条语义从未被任何一方明确定义过。
           **这是需求缺失，不是实现疏忽。**
 ```

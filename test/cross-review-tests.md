@@ -3,7 +3,7 @@
 评审人：resolve-probe（只读评审，**未修改任何测试文件**）
 日期：2026-10-22
 评审对象：`test/` 下 8 个套件（`run-all.mjs` 实际挂载的 8 个）+ 2 个未挂载脚本
-评审输入：`D:/MyVault/10_Projects/WorkBuddy-Obsidian-Bridge/04-最佳实践.md`、`01-开发复盘.md`、`docs/BEST-PRACTICES.md`
+评审输入：`D:/MyVault/10_Projects/<项目目录>/<最佳实践文档>.md`、`<开发复盘文档>.md`、`docs/BEST-PRACTICES.md`
 
 > **证据分级**：本文每条结论标注 **[已验证]**（有命令输出）/ **[推断]**（有源码行号但无实跑）/ **[证据不足]**。
 > 覆盖率数字全部来自**实际运行**（`NODE_V8_COVERAGE` + 自写解析器），不是估算。
@@ -143,7 +143,7 @@ for (const range of fn.ranges ?? []) {
 | **FN-3** | 全域 | **`maybeOrganize` / `knowledge-organize-cursor.json` 零断言**：`grep -n 'knowledge-organize-cursor\|maybeOrganize\|organizeRuns\|organizeFailed' test/*.mjs` → 只有 3 条**注释**（`audit-flow.mjs:724`、`wiring.mjs:252,254`）。`wiring.mjs:250-268` 只核对 `createRunner()` 的**导出表**，没有任何断言验证 `maybeOrganize()` 真的跑起来、游标文件真的出现 | **高** |
 | **FN-4** | 全域 | **`obsidian-local` 硬编码 vs `cordis.patch.yml:31` 的 `serverName` 无一致性断言**：`audit-counters.mjs:575-576` 把 `mcp__obsidian-local__*` 写死在 mock 里，而 `index.js:48` 的 `OBSIDIAN_MCP_SERVER = 'obsidian-local'` 与 `cordis.patch.yml:31` 的 `serverName: obsidian-local` 是**三处独立审计**（当前三者恰好一致）。任一处漂移 → `countMcpTools`（`index.js:249-255`）静默返回 0，面板显示「未加载」而不报错。**没有任何断言把三者绑在一起** | 中 |
 | **FN-4b** | 全域 | **`client.js`（345 行）与 `typert.host.js`（77 行）运行时覆盖率为 0**：8 个套件里没有任何一个在 Node 里执行过 Client 半边（它走 `window.__ModuleLoader__.load`，见 `client.js:7-11`）。Client 半边目前**只被文本断言**（V1–V4/V8/N6–N8）覆盖 —— 即「源码里写了」而非「跑起来对」 | **高** |
-| **FN-5** | `test/audit-flow.mjs:101` | mock 的 `effect() {}` **丢弃 disposer**，因此无法发现「disposer 从未注册」的泄漏（`04-最佳实践.md:117` 记为坑 3 的次生危害）。对照 `audit-counters.mjs:106-108` 是记录 `effects` 的 | 中 |
+| **FN-5** | `test/audit-flow.mjs:101` | mock 的 `effect() {}` **丢弃 disposer**，因此无法发现「disposer 从未注册」的泄漏（`<最佳实践文档>.md:117` 记为坑 3 的次生危害）。对照 `audit-counters.mjs:106-108` 是记录 `effects` 的 | 中 |
 | **FN-6** | `test/audit-flow.mjs:193` | `ctx.warnings.length = 0; // 丢弃 mountBridgeService 的降级告警` —— 若 `mountBridgeService` 回归为「永远失败」，`ctx.logger.warn` 会被调用然后**立刻被清空**，套件保持全绿 | 中 |
 | **FN-7** | `test/e2e-verify.mjs:384`（M4） | 唯一能把「计数器 == 真实工具调用数」对账的项被**显式 SKIP**，理由写明「计数器本身无法外部读取」。于是计数器真实性只在 mock-ctx 套件里成立 | 中 |
 | **FN-8** | `test/audit-counters.mjs:214,219,224,230,241` | 用**对象载荷** `{ exec: {...} }` 调 `tools/result`，走的是 `index.js:403-405` 的**防御性归一**分支；真实派发形态是位置参数 `(exec, result)`（`index.js:397`）。真实形态只有 `wiring.mjs:165` 与 `audit-flow.mjs:415` 覆盖 | 中 |

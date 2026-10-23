@@ -667,6 +667,89 @@ function neutralizeUnpublishedLinks(text, relPath, published) {
 }
 
 // ------------------------------------------------------------
+// 6.5 真实文件名泄漏检查
+// ------------------------------------------------------------
+/**
+ * 通用/模式化文件名 —— 它们在任何仓库都可能出现，不算泄漏。
+ *
+ * 判据：Vault 里同名的文件若在**多个不同目录**下都存在，或名字本身是
+ * 本插件定义的模式（日志文件名），或属于极少数通用名（README/PRD），
+ * 都不该被当作「本仓库特有的私密文件名」。
+ */
+const GENERIC_NAMES = new Set(['README.md', 'PRD.md', 'MEMORY-INDEX.md']);
+const GENERIC_RE = [
+  /^\d{4}-\d{2}-\d{2}_(conversation|decision|thinking|insight|memory-op|project-op|tool-op)\.md$/, // 日志名（插件定义的模式）
+  /^[a-z-]+-memory\.md$/, // memory-sync 产物
+  /^[A-Z]+-[A-Z]+-\d+\.md$/, // 知识图谱索引类
+];
+
+/**
+ * 收集 Vault 里「非通用」的真实文件名，用于泄漏检查。
+ *
+ * **为什么需要**：笔记标题由对话内容派生（形如
+ * `KB-<时间戳>_<slug>_<标题片段>.md`），公开仓库带上它们等于公开对话片段 ——
+ * 这正是 `RELEASE-SECURITY.md` 被排除在发布树外的理由。
+ * 此前 `KNOWLEDGE-PIPELINE.md` 与 `RELEASE-1.0.md` 就泄漏过真实笔记名
+ * （2026-10-23 修复）。
+ *
+ * **本文件的注释里不要写真实文件名** —— 它会把自己报成命中（实测踩过）。
+ * @returns Vault 里的非通用 .md 文件名集合。
+ */
+function collectVaultNoteNames() {
+  const vault = process.env.OBSIDIAN_VAULT_PATH || 'D:/MyVault';
+  if (!fs.existsSync(vault)) return new Set();
+  const names = new Set();
+  const walk = (dir, depth) => {
+    if (depth > 6) return;
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      return;
+    }
+    for (const e of entries) {
+      if (e.name === '.git' || e.name === '.obsidian' || e.name === 'node_modules') continue;
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) walk(p, depth + 1);
+      else if (e.name.endsWith('.md')) {
+        if (GENERIC_NAMES.has(e.name)) continue;
+        if (GENERIC_RE.some((re) => re.test(e.name))) continue;
+        names.add(e.name);
+      }
+    }
+  };
+  walk(vault, 0);
+  return names;
+}
+
+/**
+ * 扫发布树里是否出现 Vault 的真实文件名。
+ * @param stagingDir - 发布树根目录。
+ * @returns 命中列表（`文件 ← 真实文件名`）。
+ */
+function scanRealNameLeaks(stagingDir) {
+  const realNames = collectVaultNoteNames();
+  if (realNames.size === 0) return [];
+  const hits = [];
+  const walk = (dir) => {
+    for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
+      const p = path.join(dir, e.name);
+      if (e.isDirectory()) {
+        walk(p);
+      } else if (/\.(md|json|yml|js|mjs|svg)$/.test(e.name)) {
+        const rel = path.relative(stagingDir, p).replace(/\\/g, '/');
+        const text = fs.readFileSync(p, 'utf-8');
+        for (const name of realNames) {
+          if (text.includes(name)) hits.push(`${rel} ← ${name}`);
+        }
+      }
+    }
+  };
+  walk(stagingDir);
+  return hits;
+}
+
+// ------------------------------------------------------------
 // 7. 主流程
 // ------------------------------------------------------------
 const out = { mode: '', findings: [], info: [], publishTree: [] };
@@ -693,6 +776,17 @@ if (CHECK_VAULT) {
   out.findings = stagedHits;
   if (stagedHits.length === 0) out.info.push('发布树复检：0 命中 ✅');
   else out.info.push(`发布树复检：仍有 ${stagedHits.length} 处命中 ❌（脱敏规则未覆盖）`);
+
+  // **真实文件名泄漏检查**：发布树里出现 Vault 的真实笔记名 = 公开对话片段。
+  // 与上面的模式扫描互补 —— 那个查「路径/密钥」，这个查「笔记标题」。
+  const nameLeaks = scanRealNameLeaks(target);
+  if (nameLeaks.length === 0) {
+    out.info.push(`真实文件名检查：0 处泄漏 ✅（Vault 非通用文件名 ${collectVaultNoteNames().size} 个已比对）`);
+  } else {
+    out.info.push(`真实文件名泄漏 ❌ ${nameLeaks.length} 处（笔记标题由对话派生，不得公开）：`);
+    for (const leak of nameLeaks.slice(0, 20)) out.info.push(`    ${leak}`);
+    if (nameLeaks.length > 20) out.info.push(`    …（共 ${nameLeaks.length} 处）`);
+  }
 } else {
   out.mode = 'scan';
   const files = walk(ROOT);

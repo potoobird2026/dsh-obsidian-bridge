@@ -404,7 +404,7 @@ check('P13', '自指循环门：注入块不提炼为知识条目', () => {
     {
       file: '2026-01-01_conversation.md', ts: '2026-01-01T00:00:00.000Z',
       type: 'conversation', tags: ['auto'],
-      content: ensureLong(`## ${marker}\n\n### [05_网络层_源码学习心得]\n- 来源: D:/MyVault/30_Resources/后端与数据库/05_网络层_源码学习心得.md\n- 分类: unknown | 置信度: 0.7`),
+      content: ensureLong(`## ${marker}\n\n### [<笔记标题>]\n- 来源: D:/MyVault/30_Resources/<分类>/<笔记名>.md\n- 分类: unknown | 置信度: 0.7`),
     },
   ], { label: 'injection' });
   try {

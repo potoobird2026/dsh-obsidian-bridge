@@ -586,10 +586,11 @@ const KNOWLEDGE_TYPES = ['conversation', 'decision', 'insight'];
 ```
 
 **`process/` 目录 3 条已确认落盘**（`git status` 因整个目录未跟踪而折叠成 1 行 `??`，
-`git add` 时会展开）：
+`git add` 时会展开）。文件名形如：
 
 ```
-KB-20261021-1708_obsidian-bridge_v1.0.0_发布前死代码清.md
-KB-20261021-8413_obsidian-bridge_v1.0_知识图谱入库完成.md
-KB-20261021-8499_obsidian-bridge_文档体系补齐（P0_三项落地.md
+KB-<YYYYMMDD-HHMM>_<slug>_<标题片段>.md
 ```
+
+> 此处不写真实文件名 —— 笔记标题由对话内容派生，公开仓库不应带上它们
+> （与 `docs/RELEASE-SECURITY.md` 被排除在发布树外的理由一致）。
