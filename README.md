@@ -1,7 +1,12 @@
 # Obsidian Bridge（DeepSeek Harness 插件）
 
-WorkBuddy-Obsidian-Bridge PRD 的 DSH 落地实现。WorkBuddy 中国版的 Hook 自动触发
-不可靠（PRD §10.3 Q1/Q2 未解决），因此改为 DSH Cordis 插件。
+**DSH 插件**：把 DSH 的对话 / 工具 / 回合 / 会话事件自动留痕到 Obsidian Vault，
+并自动检索知识库注入上下文。
+
+> **来源**：最初是 `WorkBuddy-Obsidian-Bridge` PRD（面向 WorkBuddy 的 Hook 方案）。
+> WorkBuddy 中国版的 Hook 自动触发不可靠（PRD §10.3 Q1/Q2 未解决），
+> 因此改为 **DSH Cordis 插件** —— 事件来源是 DSH 自己的 Cordis 事件总线，
+> 不依赖 WorkBuddy 的 Hook。留痕动作复用 Vault 里的 `90_Agent/hooks/bridge.js`。
 
 ## 安装状态
 
