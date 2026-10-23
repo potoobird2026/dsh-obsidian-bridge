@@ -87,7 +87,13 @@ const check = (name, ok, detail = '') => {
     // **必须检查发布树本身**，而不是跑 `--scan` ——
     // `--scan` 扫的是工作树（含 D:/MyVault 等本地路径，123 处属正常），
     // 发布树才是真正要上传的东西。
-    const SENSITIVE = /D:\/MyLibrary|C:\\Users|<USER>|\.workbuddy|OBSIDIAN_BRIDGE_HMAC_SECRET\s*[:=]\s*[^'"\s]/;
+    // 密钥**赋值**才危险（`KEY: value` / `KEY=value`）；
+    // **比较表达式不算** —— `OBSIDIAN_BRIDGE_HMAC_SECRET === 's3cret'` 是测试夹具
+    // （test/cross-review-host.md L480），值是假的。
+    // 把 `=` 加进否定类可排除 `===`：否则第 2 个 `=` 被 `[:=]` 匹配、
+    // 第 3 个被 `[^'"\s]` 匹配 —— 实测就是这么误报的。
+    const SENSITIVE =
+      /D:\/MyLibrary|C:\\Users|<USER>|\.workbuddy|OBSIDIAN_BRIDGE_HMAC_SECRET\s*[:=]\s*[^'"\s=]/;
     // 脱敏与自检脚本自身**合法地**包含这些模式（它们就是靠匹配它们工作的），
     // 把它们算进去只会得到误报 —— 它们的正则字面量就是 `.workbuddy` / `C:\Users`。
     const SKIP = new Set(['scripts/prepare-github.mjs', 'scripts/verify-install.mjs']);
