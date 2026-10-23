@@ -53,33 +53,23 @@ function stage() {
     // 就地运行：ROOT/lib/config.js 会从 ROOT/node_modules 解析到依赖
     return { dir: ROOT, mode: 'local', cleanup: () => {} };
   }
-  const profile = process.env.DSH_PROFILE_DIR
-    || path.join(process.env.USERPROFILE || process.env.HOME || '', '.dsh', 'profiles', 'desktop');
-  const nm = path.join(profile, 'node_modules');
-  if (!fs.existsSync(nm)) return { dir: null, mode: 'none', cleanup: () => {} };
-  const dir = path.join(nm, `ob-testrun-${process.pid}`);
-  fs.rmSync(dir, { recursive: true, force: true });
-  fs.mkdirSync(dir, { recursive: true });
-  fs.cpSync(path.join(ROOT, 'lib'), path.join(dir, 'lib'), { recursive: true });
-  // 注意：必须连同 cordis.patch.yml 一起 stage ——
-  // `audit-counters.mjs` 的 V9 守卫要读它校验死配置是否清理干净。
-  for (const f of ['index.js', 'client.js', 'typert.host.js', 'package.json', 'cordis.patch.yml', 'README.md']) {
-    if (fs.existsSync(path.join(ROOT, f))) fs.copyFileSync(path.join(ROOT, f), path.join(dir, f));
-  }
-  fs.cpSync(path.join(ROOT, 'test'), path.join(dir, 'test'), { recursive: true });
-  if (fs.existsSync(path.join(ROOT, 'docs'))) {
-    fs.cpSync(path.join(ROOT, 'docs'), path.join(dir, 'docs'), { recursive: true });
-  }
-  return { dir, mode: 'profile', cleanup: () => fs.rmSync(dir, { recursive: true, force: true }) };
+  // **不再回退到 DSH profile 的 node_modules**。
+  //
+  // 那个回退是本机便利，但在 CI 上有害：GitHub runner 的镜像里自带
+  // `~/.dsh/profiles/desktop/node_modules`（有 schemastery 的**旧版本**或根本没有），
+  // 于是 `npm install` 明明成功（added 3 packages），测试却跑在 profile 的
+  // staging 目录里并报 `ERR_MODULE_NOT_FOUND: @deepseek-ai/schemastery`
+  // —— CI 实测就是这么红的（run 39888568096）。
+  // 现在缺依赖就返回 dir:null，L2 套件按「环境缺失」跳过，
+  // `--strict` 会把它判为失败 —— 这才是正确的信号（CI 漏装依赖就是配置事故）。
+  return { dir: null, mode: 'none', cleanup: () => {} };
 }
 
 const { dir: STAGE, mode: STAGE_MODE, cleanup } = stage();
 /** L2 的运行前置条件描述，随实际解析结果变化。 */
 const L2_NEED = STAGE_MODE === 'local'
   ? '仓库 node_modules（npm install）'
-  : STAGE_MODE === 'profile'
-    ? 'profile node_modules（解析 schemastery）'
-    : 'node_modules —— 请先 `npm install`（或提供 profile）';
+  : 'node_modules —— 请先 `npm install`（缺少 @deepseek-ai/schemastery）';
 
 /** 测试项定义。 */
 const SUITES = [
