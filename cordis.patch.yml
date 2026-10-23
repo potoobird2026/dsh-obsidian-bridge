@@ -1,0 +1,38 @@
+- insert:
+    - id: obsidian-bridge
+      name: '@local/obsidian-bridge'
+      config:
+        vaultPath: D:/MyVault
+        nodePath: node
+        hmacSecretEnv: OBSIDIAN_BRIDGE_HMAC_SECRET
+        enabled:
+          prompt: true
+          tool: true
+          stop: true
+          sessionStart: true
+        inject:
+          enabled: true
+          limit: 3
+          minKeywordLength: 2
+        # 知识条目整理（v1.0.1 新增）：把交互日志提炼为结构化知识条目。
+        # 游标只处理新增 + contentHash 去重 + 质量门（跳过 session-start / system prompt 泄漏）。
+        organize:
+          enabled: true
+          batchLimit: 20
+          minIntervalMs: 300000
+        # 治理扫描不由此插件调度 —— 由 90_Agent/hooks/bridge.js 的 runGovernance()
+        # 在 stop 时自行触发。原先的 everyStops 字段插件侧从未读取（死配置），
+        # 已从 schema 移除；这里同步清理，避免误导后来者。
+        governance:
+          documented: true
+    - id: obsidian-mcp
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: obsidian-local
+        transport: stdio
+        command: node
+        args:
+          - <YOUR_WORKBUDDY_PATH>
+        env:
+          OBSIDIAN_VAULT_PATH: D:/MyVault
+        failOnStartupError: true

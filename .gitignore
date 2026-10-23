@@ -1,0 +1,13 @@
+# 依赖与本机配置
+node_modules/
+cordis.patch.yml.local
+*.local.yml
+.env
+.env.*
+!.env.example
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

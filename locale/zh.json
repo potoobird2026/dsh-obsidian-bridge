@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Obsidian 桥接",
+    "description": "自动把对话、工具调用、回合结束与会话开始留痕到 Obsidian Vault，并在每轮 prompt 时检索知识库注入相关笔记。"
+  }
+}

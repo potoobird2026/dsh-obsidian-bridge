@@ -1,0 +1,58 @@
+{
+  "name": "@local/obsidian-bridge",
+  "version": "1.0.2",
+  "description": "WorkBuddy-Obsidian 无感自动桥接：DSH 对话/工具/回合/会话事件自动留痕到 Obsidian Vault，并自动检索知识库注入上下文。",
+  "private": false,
+  "type": "module",
+  "main": "./index.js",
+  "exports": {
+    ".": {
+      "default": "./index.js"
+    },
+    "./typert": {
+      "default": "./typert.host.js"
+    },
+    "./client": {
+      "default": "./client.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "typert.host.js",
+    "cordis.patch.yml",
+    "lib",
+    "locale",
+    "icon.svg"
+  ],
+  "dependencies": {
+    "@deepseek-ai/schemastery": "~3.18.5"
+  },
+  "dsh": {
+    "manifestVersion": 1,
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-connection",
+        "@deepseek-ai/dsh-api-remotes",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-settings"
+      ]
+    }
+  },
+  "keywords": [
+    "dsh",
+    "dsh-plugin",
+    "deepseek-harness",
+    "cordis",
+    "obsidian",
+    "bridge",
+    "knowledge-base"
+  ],
+  "license": "MIT"
+}

@@ -1,0 +1,83 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  test:
+    name: 测试（Node ${{ matrix.node }} / ${{ matrix.os }}）
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        node: ['22', '24']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+
+      - name: 安装依赖（让 L2 真正可跑，而不是被 SKIP 掉）
+        # `lib/config.js` 依赖 @deepseek-ai/schemastery（npm 上可用，版本与
+        # package.json 声明的 ~3.18.5 一致）。装它之后 test/run-all.mjs 会优先用
+        # 仓库自己的 node_modules，L2 五个套件从「跳过」变成「真跑」。
+        run: npm install --no-audit --no-fund --no-package-lock
+
+      - name: 语法检查（所有 JS/MJS）
+        shell: bash
+        run: |
+          fail=0
+          while IFS= read -r f; do
+            node --check "$f" || { echo "语法错误: $f"; fail=1; }
+          done < <(find . -name '*.js' -o -name '*.mjs' | grep -v node_modules)
+          exit $fail
+
+      - name: 统一测试套件（CI 模式 + 严格模式）
+        # --strict 只对「环境缺失」的跳过判失败（例如忘了 npm install），
+        # 不对「按设计跳过」判失败（L1 需要 DSH 安装目录、L3 需要真实 Vault，
+        # runner 上本就没有）。详见 test/run-all.mjs 的 expectedSkip 逻辑。
+        shell: bash
+        run: node test/run-all.mjs --ci --strict
+        env:
+          # runner 上没有 DSH 安装目录 → L1 按设计 SKIP；
+          # L3 端到端在 --ci 下按设计 SKIP（需要运行中的 DSH + 真实 Vault）。
+          DSH_APP_DIR: ${{ github.workspace }}/.no-dsh-in-ci
+
+      - name: 汇总（把跳过项显式列出，不伪装成通过）
+        if: always()
+        shell: bash
+        run: |
+          echo "### 测试分层说明" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| 层 | 内容 | CI 可跑 |" >> $GITHUB_STEP_SUMMARY
+          echo "|---|---|---|" >> $GITHUB_STEP_SUMMARY
+          echo "| L1 | 契约：处理器签名 vs 平台 api-catalog | 按设计 SKIP（runner 无 DSH 安装目录） |" >> $GITHUB_STEP_SUMMARY
+          echo "| L2 | 单元/接线：mock ctx 加载真实 index.js | ✅ 跑（依赖 npm install） |" >> $GITHUB_STEP_SUMMARY
+          echo "| L3 | 端到端：真实 Vault + 运行中的 DSH | 按设计 SKIP（本地专用） |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> **跳过分两类，不要混为一谈：**" >> $GITHUB_STEP_SUMMARY
+          echo "> - **按设计跳过**：L1 / L3 —— runner 上本就没有 DSH 安装目录与真实 Vault，**必须本地补跑**。" >> $GITHUB_STEP_SUMMARY
+          echo "> - **环境缺失跳过**：L2 若因缺依赖被跳过，`--strict` 会**判为失败**（这类跳过是配置事故，不是设计）。" >> $GITHUB_STEP_SUMMARY
+          echo ">" >> $GITHUB_STEP_SUMMARY
+          echo "> L3 的本地补跑步骤见 docs/TROUBLESHOOTING.md。" >> $GITHUB_STEP_SUMMARY
+
+  lint-docs:
+    name: 文档一致性
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: 内部链接有效性
+        run: node scripts/check-doc-links.mjs
+
+      - name: 行数口径守卫（防 gb2312 失真）
+        run: node scripts/check-line-counts.mjs
