@@ -62,8 +62,10 @@ jobs:
           echo "| L3 | 端到端：真实 Vault + 运行中的 DSH | 按设计 SKIP（本地专用） |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "> **跳过分两类，不要混为一谈：**" >> $GITHUB_STEP_SUMMARY
+          # **不要用反引号** —— bash 里反引号是命令替换，`--strict` 会被当成命令执行，
+          # 报 `--strict: command not found`（实测 CI 就是这么红的）。
           echo "> - **按设计跳过**：L1 / L3 —— runner 上本就没有 DSH 安装目录与真实 Vault，**必须本地补跑**。" >> $GITHUB_STEP_SUMMARY
-          echo "> - **环境缺失跳过**：L2 若因缺依赖被跳过，`--strict` 会**判为失败**（这类跳过是配置事故，不是设计）。" >> $GITHUB_STEP_SUMMARY
+          echo "> - **环境缺失跳过**：L2 若因缺依赖被跳过，--strict 会**判为失败**（这类跳过是配置事故，不是设计）。" >> $GITHUB_STEP_SUMMARY
           echo ">" >> $GITHUB_STEP_SUMMARY
           echo "> L3 的本地补跑步骤见 docs/TROUBLESHOOTING.md。" >> $GITHUB_STEP_SUMMARY
 

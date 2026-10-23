@@ -146,11 +146,17 @@ const SUITES = [
   {
     // 交叉评审 FN-1：此套件此前**未被 run-all 引用**，
     // 也就是说它 16 条断言从未在统一入口里跑过 —— 典型的「隐性失效」。
+    //
+    // **声明 Vault 依赖**：它的 B 组「Vault 卫生检查」读真实 Vault
+    // （`process.env.OBSIDIAN_VAULT_PATH || 'D:/MyVault'`，L29），
+    // A 组 fixture 虽隔离在临时目录，但 B 组不是 —— 不声明的话，
+    // 无 Vault 的环境（CI runner）会**跑了然后失败**，而不是按设计跳过。
     layer: 'L2',
     name: '知识整理：质量门 / 分类 / 幂等 / 自指循环',
     file: 'test/knowledge-quality.mjs',
-    needs: () => STAGE !== null,
-    needDesc: L2_NEED,
+    needs: () => STAGE !== null && HAS_VAULT,
+    needDesc: `${L2_NEED} + 真实 Vault（${VAULT}）`,
+    optionalInfra: true,
     pass: /(\d+) PASS \/ (\d+) FAIL/,
     failedGroup: 2,
   },
@@ -242,7 +248,13 @@ for (const s of SUITES) {
     });
   } catch (error) {
     const out = String(error.stdout ?? '') + String(error.stderr ?? '');
-    results.push({ ...s, status: 'FAIL', detail: out.trim().split('\n').slice(-3).join(' | ') || String(error.message), output: out });
+    // **要包含 `[FAIL]` 行本身** —— 此前只取最后 3 行，而套件把失败详情
+    // 打在开头（`[FAIL] 标题\n<原因>`），导致 run-all 的 detail 为空，
+    // 排查时完全看不到原因（实测 config-consistency 就是这样）。
+    const failLines = out.split('\n').filter((l) => /\[FAIL\]/.test(l));
+    const tail = out.trim().split('\n').slice(-2).filter((l) => !/^\s*$/.test(l));
+    const detail = [...failLines, ...tail].join(' | ').trim() || String(error.message);
+    results.push({ ...s, status: 'FAIL', detail, output: out });
   }
 }
 
