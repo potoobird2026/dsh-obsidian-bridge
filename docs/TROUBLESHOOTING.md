@@ -351,7 +351,7 @@ $paths | ForEach-Object { "{0}  {1}" -f $(if (Test-Path "$VAULT/$($_.Value)") { 
 └─【闸门 8】Vault 里已有大量垃圾条目，掩盖了「新增」？
     ├─ 现状：30_Resources/experience/ 下有 **291 条**历史垃圾条目（K-11）
     │   —— 由旧 CLI 无去重地重复生成，标题是乱码
-    │   （如 KB-20261019-0520_用户_prompt_最终验证_hook_是否正常工作_---_type_conv.md）
+    │   （形如 `KB-<时间戳>_<类型>_<对话片段>.md` —— 此处不写真实文件名）
     ├─ 判据：比较「今天新增的 KB-*.md 数量」，而不是总数
     │   Get-ChildItem "D:/MyVault/30_Resources" -Recurse -Filter 'KB-*' |
     │     Where-Object { $_.LastWriteTime -gt (Get-Date).AddHours(-1) } | Measure-Object
