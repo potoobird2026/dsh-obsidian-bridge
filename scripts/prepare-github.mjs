@@ -96,6 +96,8 @@ const PUBLISH_INCLUDE = [
   'test/audit-counters.mjs',
   'test/acceptance.mjs',
   'test/e2e-verify.mjs',
+  // audit-counters / audit-flow 用它解析暂存目录（不能用 DSH profile —— CI 上会缺依赖）
+  'test/lib-staging.mjs',
   // 测试文档与覆盖率工具：公开仓库应能说明「怎么测、测了什么」
   'test/coverage.mjs',
   'test/test-suite-plan.md',

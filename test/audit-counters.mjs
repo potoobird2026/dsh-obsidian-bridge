@@ -21,8 +21,8 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const PROFILE_MODULES = path.join(os.homedir(), '.dsh/profiles/desktop/node_modules');
 const NODE = process.execPath;
+import { resolveStaging } from './lib-staging.mjs';
 
 // ============================================================
 // 0. 临时 Vault：可控的笔记集合，用于精确断言注入条数
@@ -48,9 +48,19 @@ write('30_Resources/experience/KB-3_桥接.md', '---\ntitle: 第三篇 MCP 桥�
 write('30_Resources/topic/KB-4_无关.md', '---\ntitle: 无关笔记\nsummary: 完全无关\ncategory: topic\n---\n\n无关正文\n');
 
 // ============================================================
-// 1. 加载真实 index.js（先 stage 到 profile node_modules 以解析 schemastery）
+// 1. 加载真实 index.js（先 stage 到**仓库的** node_modules 以解析 schemastery）
 // ============================================================
-const STAGING = path.join(PROFILE_MODULES, '.audit-counters-staging');
+// **不能用 DSH profile**：GitHub runner 镜像自带 `~/.dsh/profiles/desktop/node_modules`
+// 但没有 schemastery，CI 上会报 ERR_MODULE_NOT_FOUND（实测 run 39888972259）。
+// 仓库 `npm install` 之后 schemastery 就在 `<repo>/node_modules`，本地与 CI 都成立。
+const STAGING = resolveStaging('audit-counters');
+if (!STAGING) {
+  console.error(
+    '❌ 无法解析 @deepseek-ai/schemastery：仓库没有 node_modules。\n' +
+      '   请先跑 `npm install`（CI 里对应 workflow 的「安装依赖」步骤）。',
+  );
+  process.exit(1);
+}
 // 必须与 index.js 内部 `import './lib/status-store.js'` 解析出的 URL 完全一致，
 // 否则会是两个模块实例，setSnapshot 写的快照在 getSnapshot 里读不到。
 const STORE_URL = pathToFileURL(path.join(STAGING, 'lib/status-store.js')).href;

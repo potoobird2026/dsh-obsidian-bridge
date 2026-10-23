@@ -23,8 +23,8 @@ import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const PROFILE_MODULES = path.join(os.homedir(), '.dsh/profiles/desktop/node_modules');
 const NODE = process.execPath;
+import { resolveStaging } from './lib-staging.mjs';
 
 // ============================================================
 // 0. 结果收集
@@ -53,9 +53,18 @@ const note = (title, extra = '') =>
   `---\ntitle: ${title}\nsummary: ${title}\ncategory: experience\n---\n\n${title} ${extra}\n`;
 
 // ============================================================
-// 2. 加载真实 index.js（stage 到 profile node_modules）
+// 2. 加载真实 index.js（stage 到**仓库的** node_modules）
 // ============================================================
-const STAGING = path.join(PROFILE_MODULES, '.audit-flow-staging');
+// 同 audit-counters.mjs：不能用 DSH profile —— GitHub runner 镜像里那个目录
+// 没有 schemastery，CI 上必然 ERR_MODULE_NOT_FOUND。
+const STAGING = resolveStaging('audit-flow');
+if (!STAGING) {
+  console.error(
+    '❌ 无法解析 @deepseek-ai/schemastery：仓库没有 node_modules。\n' +
+      '   请先跑 `npm install`（CI 里对应 workflow 的「安装依赖」步骤）。',
+  );
+  process.exit(1);
+}
 const STORE_URL = pathToFileURL(path.join(STAGING, 'lib/status-store.js')).href;
 
 let indexModule;
